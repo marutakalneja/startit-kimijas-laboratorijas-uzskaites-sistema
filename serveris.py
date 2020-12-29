@@ -1,4 +1,4 @@
-from flask import Flask, json, jsonify, render_template, request
+from flask import Flask, jsonify, render_template, json, request
 import dati
 
 
@@ -38,67 +38,68 @@ def lietotajs():
     return render_template("user_menu.html")
 
 
-@app.route('/api/v1/vielas', methods=['GET'])
+@app.route('/api/v1/vielas')
 def vielas():
-    # atveram datni
-    with open("dati/vielas.json", "r") as f:
-        # ielasām un pārvēršam par json
-        dati = json.loads(f.read())
-    
-    # pārveidojam par string pirms atgriežam
+    with open("dati/vielas.json", "r", encoding="utf-8") as f:
+      dati = json.loads(f.read())
+    # pārveidojam par json pirms atgriežam
     return jsonify(dati)
 
 
-@app.route('/api/v1/viela/<vielasID>', methods=['GET'])
+@app.route('/api/v1/viela/<vielasID>')
 def viela_id(vielasID):
     # Noklusēta vērtība, ja viela netiks atrasta
     viela = "Viela ar ID {} neeksistē".format(vielasID)
-    
-    # atveram datni
-    with open("dati/vielas.json", "r") as f:
-        # ielasām un pārvēršam par json
-        dati = json.loads(f.read())
-
     # meklējam vielu sarakstā
-    for v in dati:
+    for v in dati.vielas:
         # vielas ID ir skaitlis, jāpārveido datu tips
         if v["id"] == int(vielasID):
             viela = v
     return jsonify(viela)
 
+@app.route('/api/v1/viela', methods = ['POST'])
+def pievienot_vielu():
+  datne = "dati/vielas.json"
 
-@app.route('/api/v1/viela',methods=['POST'])
-def jauna_viela():
-    # atveram datni, lai ielasītu esošos datus
-    with open("dati/vielas.json", "r", encoding='utf-8') as f:
-        # ielasām un pārvēršam par json
-        dati = json.loads(f.read())
-    
-    # atrodam lielāko vielas ID
-    lielais_id = 1
-    for viela in dati:
-        if viela["id"] > lielais_id:
-            lielais_id = viela["id"]
+  with open(datne, "r", encoding = "utf-8") as f:
+    vielas = json.loads(f.read())
 
-    # ielasām ienākošos datus un pārvēršam par json
-    jauna_viela = json.loads(request.data)
-    # šeit vajadzētu veikt pārbaudi vai ir visi nepieciešamie dati
-    if len(jauna_viela) < 7:
-        return jsonify("Aizpildiet visus laukus!")
-    if len(jauna_viela["nosaukums"]) < 3:
-        return jsonify("Vielas nosaukums ir par īsu!")
-    
-    # ja viss ir OK, pievienojam jauno id
-    jauna_viela["id"] = lielais_id + 1
-    # pievienojam jauno vielu pie datiem
-    dati.append(jauna_viela)
-    # ierakstam atjaunotos datus atpakaļ datnē
-    with open("dati/vielas.json", "w", encoding='utf-8') as f:
-        # ielasām un pārvēršam par json
-        # šeit nevar izmantot jsonify, jo rakstām datnē nevis atgriežam no Flask
-        f.write(json.dumps(dati))
-    # atgriežam jauno ID
-    return jsonify(lielais_id+1)
+  last_id = vielas[len(vielas) - 1]['id']
+  
+  jauna_viela = json.loads(request.data)
+  jauna_viela['id'] = last_id + 1
+
+  vielas.append(jauna_viela)
+
+  with open(datne, "w", encoding = "utf-8") as f:
+    f.write(json.dumps(vielas))
+  
+  return "1"
+
+
+
+
+@app.route('/api/v1/<kategorija>/<id>/dzest', methods = ['POST'])
+def dzest(kategorija, id):
+  if kategorija == "viela":
+    datne = "dati/vielas.json"
+  elif kategorija == "inventars":
+    datne = "dati/inventars.json"
+  else:
+    return "0"
+
+  with open(datne, "r", encoding = 'utf-8') as f:
+    dati = json.loads(f.read())
+
+  new_data = []
+  for v in dati:
+    if str(v['id']) != id:
+      new_data.append(v)
+
+  with open(datne, "w", encoding = "utf-8") as f:
+    f.write(json.dumps(new_data))
+
+  return "1"
 
 
 if __name__ == "__main__":
