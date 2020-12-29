@@ -30,6 +30,4 @@ def viela(vielasID):
 
 #izveidot route /api/v1/inventars, kas atgriež visus piemēra datus, kas atrodami datnē dati.py mainīgajā inventars
 
-@app.route("/api/v1/inventars")
-def inventars():
-  return jsonify(dati.inventars)
+  
